@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Import Packages
 ```{r}
-libs = c('jsonlite', 'tidyjson', 'ggplot2', 'tidyverse','knitr', 'purrr', 'rvest', 'git2r', 'fs', 'tictoc')
+libs = c('jsonlite', 'tidyjson', 'ggplot2', 'tidyverse','knitr', 'purrr', 'rvest', 'git2r', 'fs', 'tictoc','tidytext','tm')
 invisible(lapply(libs, library, character.only = TRUE))
 ```
 
@@ -45,10 +45,12 @@ congress_tweets <- readRDS("data_files.rds")
 # Clean up data
 ```{r}
 congress_tweets_clean <- congress_tweets %>%
-  # head()%>%
+  # head(20)%>%
   mutate(date_time = lubridate::as_datetime(str_sub(str_replace(time, "T", " "), 0, 19)),
          year = lubridate::year(date_time))%>%
   select(id, screen_name, date_time, year, text, source, user_id, link)
+
+#mutate num words per tweet
 
 ```
 
@@ -64,20 +66,41 @@ congress_tweets_clean <- congress_tweets %>%
 
 # 2. What are the top 20 words that are used in their tweets? What do they tell us about the data?
 ```{r}
+#get a dataframe of English stopwords
+en_stopwords = data.frame(word = stopwords("en"))
+
+tic()
+frequency_dataframe <- congress_tweets_clean%>%
+  select(text)%>%
+  unnest_tokens(output=word, input=text, token="tweets")%>% 
+  anti_join(en_stopwords) %>% #gets rid of stop words
+  count(word)%>% 
+  arrange(desc(n))
+toc()
 
 ```
 
 # 3. Who are the power users?
 ```{r}
 congress_tweets_by_user <- congress_tweets_clean %>%
+  group_by(screen_name, user_id)%>%
+  tally()%>%
+  arrange(desc(n))
+
+congress_tweets_by_user_year <- congress_tweets_clean %>%
   group_by(screen_name, user_id, year)%>%
   tally()%>%
   arrange(desc(n))
+
+#mutate avg num words per tweet
 
 ```
 
 # 4.  feel free to add in any other interesting takeaways from the data that you think are worth sharing!
 ```{r}
+#who mentions Donald Trump the most in tweets? over what period of time?
+
+
 
 ```
 
