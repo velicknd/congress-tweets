@@ -45,7 +45,7 @@ congress_tweets <- readRDS("data_files.rds")
 # Clean up data
 ```{r}
 congress_tweets_clean <- congress_tweets %>%
-  # head(20)%>%
+  head(20)%>%
   mutate(date_time = lubridate::as_datetime(str_sub(str_replace(time, "T", " "), 0, 19)),
          year = lubridate::year(date_time))%>%
   select(id, screen_name, date_time, year, text, source, user_id, link)
@@ -77,6 +77,9 @@ frequency_dataframe <- congress_tweets_clean%>%
   count(word)%>% 
   arrange(desc(n))
 toc()
+#ERROR when ran on all tweets
+# Error in out[!(index_twitter | index_url)] <- stri_trans_tolower(out[!(index_twitter |  : 
+#   NAs are not allowed in subscripted assignments
 
 ```
 
