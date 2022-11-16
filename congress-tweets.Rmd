@@ -1,0 +1,85 @@
+---
+title: "Congress Tweets"
+output: html_document
+date: '2022-11-10'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Import Packages
+```{r}
+libs = c('jsonlite', 'tidyjson', 'ggplot2', 'tidyverse','knitr', 'purrr', 'rvest', 'git2r', 'fs', 'tictoc')
+invisible(lapply(libs, library, character.only = TRUE))
+```
+
+# Load Github data into RDS file
+```{r}
+# # Single day example ----
+# # url <- 'https://alexlitel.github.io/congresstweets/data/2022-11-09.json'
+# # today_example <- fromJSON(txt=url)
+# 
+# # Clone Repository ----
+# tic()
+# temp_import_dir <- path_temp("githubRepo")
+# repo_url <- "https://github.com/alexlitel/congresstweets.git"
+# clone(url = repo_url, local_path = temp_import_dir)
+# toc()
+# 
+# # Getting the actual files ----
+# #get file names as a list
+# files_list <- dir_ls(path = path(temp_import_dir, "data"),
+#                      glob = "*.json")
+# #parse JSON files into R dataframes, bind them all together
+# data_files <- map_df(files_list, fromJSON)
+# saveRDS(data_files, "data_files.rds")
+```
+
+# Load RDS file
+```{r}
+congress_tweets <- readRDS("data_files.rds")
+```
+
+
+# Clean up data
+```{r}
+congress_tweets_clean <- congress_tweets %>%
+  # head()%>%
+  mutate(date_time = lubridate::as_datetime(str_sub(str_replace(time, "T", " "), 0, 19)),
+         year = lubridate::year(date_time))%>%
+  select(id, screen_name, date_time, year, text, source, user_id, link)
+
+```
+
+# 1. What’s the Twitter usage for the users (aka members of Congress) between start and end of the dataset?
+```{r}
+# Start: June 21, 2017
+# End: Nov. 9, 2022
+
+
+
+```
+
+
+# 2. What are the top 20 words that are used in their tweets? What do they tell us about the data?
+```{r}
+
+```
+
+# 3. Who are the power users?
+```{r}
+congress_tweets_by_user <- congress_tweets_clean %>%
+  group_by(screen_name, user_id, year)%>%
+  tally()%>%
+  arrange(desc(n))
+
+```
+
+# 4.  feel free to add in any other interesting takeaways from the data that you think are worth sharing!
+```{r}
+
+```
+
+
+
