@@ -14,11 +14,11 @@ libs = c('jsonlite', 'tidyjson', 'ggplot2', 'tidyverse','knitr', 'purrr', 'rvest
 invisible(lapply(libs, library, character.only = TRUE))
 ```
 
-# Load Github data into RDS file
+# Load Github data, save as RDS file
 ```{r}
 # # Single day example ----
-# # url <- 'https://alexlitel.github.io/congresstweets/data/2022-11-09.json'
-# # today_example <- fromJSON(txt=url)
+# url <- 'https://alexlitel.github.io/congresstweets/data/2022-11-09.json'
+# today_example <- fromJSON(txt=url)
 # 
 # # Clone Repository ----
 # tic()
@@ -45,14 +45,10 @@ congress_tweets <- readRDS("data_files.rds")
 # Clean up data
 ```{r}
 congress_tweets_clean <- congress_tweets %>%
-  # head(100000)%>%
+  #clean time and year variables
   mutate(date_time = lubridate::as_datetime(str_sub(str_replace(time, "T", " "), 0, 19)),
          year = lubridate::year(date_time))%>%
   select(id, screen_name, date_time, year, text, source, user_id, link)
-
-# congress_tweets_clean <- data.table::as.data.table(congress_tweets_clean)
-
-#mutate num words per tweet
 
 ```
 
@@ -61,15 +57,16 @@ congress_tweets_clean <- congress_tweets %>%
 # Start: June 21, 2017
 # End: Nov. 9, 2022
 
-#groupby and tally by year
+#congress tweets by year
 congress_tweets_by_year <- congress_tweets_clean %>%
   group_by(year)%>%
   tally()%>%
   na.omit()
 
+#plot of congress tweets by year
 ggplot(congress_tweets_by_year, aes(x=year, y=n))+
   geom_col(fill="#002D57")+
-  coord_flip()+
+  # coord_flip()+
   labs(y="",
        x="",
        title="Number of Congress tweets by year",
@@ -81,9 +78,9 @@ ggplot(congress_tweets_by_year, aes(x=year, y=n))+
 
 
 # 2. What are the top 20 words that are used in their tweets? What do they tell us about the data?
-# Get word frequency dataframes
+# Calculate word frequency
 ```{r}
-#dataframe of English stopwords
+#data frame of English stopwords
 en_stopwords = data.frame(word = stopwords("en"))
 
 #remove URLs
@@ -92,7 +89,7 @@ congress_tweets_clean$stripped_text <- gsub("http.*","",  congress_tweets_clean$
 congress_tweets_clean$stripped_text <- gsub("https.*","", congress_tweets_clean$stripped_text)
 toc()
 
-#calculate word frequency
+#calculate word frequency for 2017, 2018, and 2022
 tic()
 frequency_dataframe17 <- congress_tweets_clean%>%
   filter(year == 2017)%>%
@@ -117,42 +114,6 @@ frequency_dataframe18 <- congress_tweets_clean%>%
 toc()
 saveRDS(frequency_dataframe18, "frequency_dataframe18.rds")
 
-# tic()
-# frequency_dataframe19 <- congress_tweets_clean%>%
-#   filter(year == 2019)%>%
-#   select(stripped_text)%>%
-#   na.omit()%>%
-#   unnest_tokens(output=word, input=stripped_text, token="tweets", to_lower=TRUE)%>%
-#   anti_join(en_stopwords) %>% #get rid of stop words
-#   count(word)%>%
-#   arrange(desc(n))
-# toc()
-# saveRDS(frequency_dataframe19, "frequency_dataframe19.rds"),
-# 
-# tic()
-# frequency_dataframe20 <- congress_tweets_clean%>%
-#   filter(year == 2020)%>%
-#   select(stripped_text)%>%
-#   na.omit()%>%
-#   unnest_tokens(output=word, input=stripped_text, token="tweets", to_lower=TRUE)%>%
-#   anti_join(en_stopwords) %>% #get rid of stop words
-#   count(word)%>%
-#   arrange(desc(n))
-# toc()
-# saveRDS(frequency_dataframe20, "frequency_dataframe20.rds")
-# 
-# tic()
-# frequency_dataframe21 <- congress_tweets_clean%>%
-#   filter(year == 2021)%>%
-#   select(stripped_text)%>%
-#   na.omit()%>%
-#   unnest_tokens(output=word, input=stripped_text, token="tweets", to_lower=TRUE)%>%
-#   anti_join(en_stopwords) %>% #get rid of stop words
-#   count(word)%>%
-#   arrange(desc(n))
-# toc()
-# saveRDS(frequency_dataframe21, "frequency_dataframe21.rds")
-
 tic()
 frequency_dataframe22 <- congress_tweets_clean%>%
   filter(year == 2022)%>%
@@ -168,14 +129,14 @@ saveRDS(frequency_dataframe22, "frequency_dataframe22.rds")
 
 ```
 
-# Visualize word frequency dataframes
+# Visualize word frequency
 ```{r}
 #load files
 frequency_dataframe17 <- readRDS("frequency_dataframe17.rds")
 frequency_dataframe18 <- readRDS("frequency_dataframe18.rds")
 frequency_dataframe22 <- readRDS("frequency_dataframe22.rds")
 
-#take top 20 words from each
+#take top 20 unique words from each
 frequency_dataframe17_unique <- frequency_dataframe17 %>%
   anti_join(frequency_dataframe18%>%select(word))%>%
   anti_join(frequency_dataframe22%>%select(word))%>%
@@ -191,6 +152,7 @@ frequency_dataframe22_unique <- frequency_dataframe22 %>%
   anti_join(frequency_dataframe18%>%select(word))%>%
   head(20)
 
+#plot of top words 2017
 ggplot(frequency_dataframe17%>%head(20), aes(x=reorder(word,+n), y=n))+
   geom_col()+
   coord_flip()+
@@ -201,6 +163,7 @@ ggplot(frequency_dataframe17%>%head(20), aes(x=reorder(word,+n), y=n))+
   councilR::theme_council(use_showtext = TRUE)+
   theme(axis.text = element_text(size=16))
 
+#plot of unique words 2017
 ggplot(frequency_dataframe17_unique, aes(x=reorder(word,+n), y=n))+
   geom_col(fill="#A37731")+
   coord_flip()+
@@ -211,6 +174,7 @@ ggplot(frequency_dataframe17_unique, aes(x=reorder(word,+n), y=n))+
   councilR::theme_council(use_showtext = TRUE)+
   theme(axis.text = element_text(size=16))
 
+#plot of unique words 2018
 ggplot(frequency_dataframe18_unique, aes(x=reorder(word,+n), y=n))+
   geom_col(fill="#57A22F")+
   coord_flip()+
@@ -221,6 +185,7 @@ ggplot(frequency_dataframe18_unique, aes(x=reorder(word,+n), y=n))+
   councilR::theme_council(use_showtext = TRUE)+
   theme(axis.text = element_text(size=16))
 
+#plot of unique words 2022
 ggplot(frequency_dataframe22_unique, aes(x=reorder(word,+n), y=n))+
   geom_col(fill="#0054A4")+
   coord_flip()+
@@ -236,17 +201,19 @@ ggplot(frequency_dataframe22_unique, aes(x=reorder(word,+n), y=n))+
 
 # 3. Who are the power users?
 ```{r}
+#power users
 congress_tweets_by_user <- congress_tweets_clean %>%
   group_by(screen_name, user_id)%>%
   tally()%>%
   arrange(desc(n))
 
+#power users by year
 congress_tweets_by_user_year <- congress_tweets_clean %>%
   group_by(screen_name, user_id, year)%>%
   tally()%>%
   arrange(desc(n))
 
-#mutate avg num words per tweet
+#plot of power users across all years
 ggplot(congress_tweets_by_user%>%head(15), aes(x=reorder(screen_name,+n), y=n))+
   geom_col(fill="#D64C3A")+
   coord_flip()+
@@ -258,14 +225,4 @@ ggplot(congress_tweets_by_user%>%head(15), aes(x=reorder(screen_name,+n), y=n))+
   theme(axis.text = element_text(size=16))
 
 ```
-
-# 4.  feel free to add in any other interesting takeaways from the data that you think are worth sharing!
-```{r}
-#who mentions Donald Trump the most in tweets? over what period of time?
-
-
-
-```
-
-
 
