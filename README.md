@@ -1,2 +1,2 @@
 # congress-tweets
-Analysis of Congress tweets data.
+Noah's analysis of data from alexlitel's [congresstweets](https://github.com/alexlitel/congresstweets) repository.
