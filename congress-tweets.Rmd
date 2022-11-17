@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Import Packages
 ```{r}
-libs = c('jsonlite', 'tidyjson', 'ggplot2', 'tidyverse','knitr', 'purrr', 'rvest', 'git2r', 'fs', 'tictoc','tidytext','tm')
+libs = c('jsonlite', 'tidyjson', 'ggplot2', 'tidyverse','knitr', 'purrr', 'rvest', 'git2r', 'fs', 'tictoc','tidytext','tm','dtplyr')
 invisible(lapply(libs, library, character.only = TRUE))
 ```
 
@@ -45,10 +45,12 @@ congress_tweets <- readRDS("data_files.rds")
 # Clean up data
 ```{r}
 congress_tweets_clean <- congress_tweets %>%
-  head(20)%>%
+  # head(100000)%>%
   mutate(date_time = lubridate::as_datetime(str_sub(str_replace(time, "T", " "), 0, 19)),
          year = lubridate::year(date_time))%>%
   select(id, screen_name, date_time, year, text, source, user_id, link)
+
+# congress_tweets_clean <- data.table::as.data.table(congress_tweets_clean)
 
 #mutate num words per tweet
 
@@ -59,6 +61,7 @@ congress_tweets_clean <- congress_tweets %>%
 # Start: June 21, 2017
 # End: Nov. 9, 2022
 
+#groupby and tally by year
 
 
 ```
@@ -66,20 +69,121 @@ congress_tweets_clean <- congress_tweets %>%
 
 # 2. What are the top 20 words that are used in their tweets? What do they tell us about the data?
 ```{r}
-#get a dataframe of English stopwords
+#dataframe of English stopwords
 en_stopwords = data.frame(word = stopwords("en"))
 
+#remove URLs
 tic()
-frequency_dataframe <- congress_tweets_clean%>%
-  select(text)%>%
-  unnest_tokens(output=word, input=text, token="tweets")%>% 
-  anti_join(en_stopwords) %>% #gets rid of stop words
-  count(word)%>% 
+congress_tweets_clean$stripped_text <- gsub("http.*","",  congress_tweets_clean$text)
+congress_tweets_clean$stripped_text <- gsub("https.*","", congress_tweets_clean$stripped_text)
+toc()
+
+#calculate word frequency
+tic()
+frequency_dataframe17 <- congress_tweets_clean%>%
+  filter(year == 2017)%>%
+  select(stripped_text)%>%
+  na.omit()%>%
+  unnest_tokens(output=word, input=stripped_text, token="tweets", to_lower=TRUE)%>%
+  anti_join(en_stopwords) %>% #get rid of stop words
+  count(word)%>%
   arrange(desc(n))
 toc()
-#ERROR when ran on all tweets
-# Error in out[!(index_twitter | index_url)] <- stri_trans_tolower(out[!(index_twitter |  : 
-#   NAs are not allowed in subscripted assignments
+saveRDS(frequency_dataframe17, "frequency_dataframe17.rds")
+
+tic()
+frequency_dataframe18 <- congress_tweets_clean%>%
+  filter(year == 2018)%>%
+  select(stripped_text)%>%
+  na.omit()%>%
+  unnest_tokens(output=word, input=stripped_text, token="tweets", to_lower=TRUE)%>%
+  anti_join(en_stopwords) %>% #get rid of stop words
+  count(word)%>%
+  arrange(desc(n))
+toc()
+saveRDS(frequency_dataframe18, "frequency_dataframe18.rds")
+
+# tic()
+# frequency_dataframe19 <- congress_tweets_clean%>%
+#   filter(year == 2019)%>%
+#   select(stripped_text)%>%
+#   na.omit()%>%
+#   unnest_tokens(output=word, input=stripped_text, token="tweets", to_lower=TRUE)%>%
+#   anti_join(en_stopwords) %>% #get rid of stop words
+#   count(word)%>%
+#   arrange(desc(n))
+# toc()
+# saveRDS(frequency_dataframe19, "frequency_dataframe19.rds"),
+# 
+# tic()
+# frequency_dataframe20 <- congress_tweets_clean%>%
+#   filter(year == 2020)%>%
+#   select(stripped_text)%>%
+#   na.omit()%>%
+#   unnest_tokens(output=word, input=stripped_text, token="tweets", to_lower=TRUE)%>%
+#   anti_join(en_stopwords) %>% #get rid of stop words
+#   count(word)%>%
+#   arrange(desc(n))
+# toc()
+# saveRDS(frequency_dataframe20, "frequency_dataframe20.rds")
+# 
+# tic()
+# frequency_dataframe21 <- congress_tweets_clean%>%
+#   filter(year == 2021)%>%
+#   select(stripped_text)%>%
+#   na.omit()%>%
+#   unnest_tokens(output=word, input=stripped_text, token="tweets", to_lower=TRUE)%>%
+#   anti_join(en_stopwords) %>% #get rid of stop words
+#   count(word)%>%
+#   arrange(desc(n))
+# toc()
+# saveRDS(frequency_dataframe21, "frequency_dataframe21.rds")
+
+tic()
+frequency_dataframe22 <- congress_tweets_clean%>%
+  filter(year == 2022)%>%
+  select(stripped_text)%>%
+  na.omit()%>%
+  unnest_tokens(output=word, input=stripped_text, token="tweets", to_lower=TRUE)%>%
+  anti_join(en_stopwords) %>% #get rid of stop words
+  count(word)%>%
+  arrange(desc(n))
+toc()
+saveRDS(frequency_dataframe22, "frequency_dataframe22.rds")
+#ERROR when run on all tweets
+
+# get_word_freq <- function(df, year) {
+#   df_year <- df %>% filter(year == year)
+#   
+#   freq_year <- df_year %>%
+#     select(stripped_text) %>%
+#     na.omit() %>%
+#     unnest_tokens(output = word, input = stripped_text, token = "tweets", to_lower = TRUE) %>%
+#     anti_join(en_stopwords) %>% #get rid of stop words
+#     count(word) %>%
+#     arrange(desc(n))
+#   
+#   return(freq_year)
+# }
+# tic()
+# word_freq_2017 <- get_word_freq(congress_tweets_clean, 2017)
+# toc()
+# tic()
+# word_freq_2018 <- get_word_freq(congress_tweets_clean, 2018)
+# toc()
+# tic()
+# word_freq_2019 <- get_word_freq(congress_tweets_clean, 2019)
+# toc()
+# tic()
+# word_freq_2020 <- get_word_freq(congress_tweets_clean, 2020)
+# toc()
+# tic()
+# word_freq_2021 <- get_word_freq(congress_tweets_clean, 2021)
+# toc()
+# tic()
+# word_freq_2022 <- get_word_freq(congress_tweets_clean, 2022)
+# toc()
+
 
 ```
 
