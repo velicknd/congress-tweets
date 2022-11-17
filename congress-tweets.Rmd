@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Import Packages
 ```{r}
-libs = c('jsonlite', 'tidyjson', 'ggplot2', 'tidyverse','knitr', 'purrr', 'rvest', 'git2r', 'fs', 'tictoc','tidytext','tm','dtplyr')
+libs = c('jsonlite', 'tidyjson', 'ggplot2', 'tidyverse','knitr', 'purrr', 'rvest', 'git2r', 'fs', 'tictoc','tidytext','tm','dtplyr','councilR')
 invisible(lapply(libs, library, character.only = TRUE))
 ```
 
@@ -62,12 +62,26 @@ congress_tweets_clean <- congress_tweets %>%
 # End: Nov. 9, 2022
 
 #groupby and tally by year
+congress_tweets_by_year <- congress_tweets_clean %>%
+  group_by(year)%>%
+  tally()%>%
+  na.omit()
 
+ggplot(congress_tweets_by_year, aes(x=year, y=n))+
+  geom_col(fill="#002D57")+
+  coord_flip()+
+  labs(y="",
+       x="",
+       title="Number of Congress tweets by year",
+       subtitle="2017 and 2022 are incomplete")+
+  councilR::theme_council(use_showtext = TRUE)+
+  theme(axis.text = element_text(size=16))
 
 ```
 
 
 # 2. What are the top 20 words that are used in their tweets? What do they tell us about the data?
+# Get word frequency dataframes
 ```{r}
 #dataframe of English stopwords
 en_stopwords = data.frame(word = stopwords("en"))
@@ -150,42 +164,75 @@ frequency_dataframe22 <- congress_tweets_clean%>%
   arrange(desc(n))
 toc()
 saveRDS(frequency_dataframe22, "frequency_dataframe22.rds")
-#ERROR when run on all tweets
-
-# get_word_freq <- function(df, year) {
-#   df_year <- df %>% filter(year == year)
-#   
-#   freq_year <- df_year %>%
-#     select(stripped_text) %>%
-#     na.omit() %>%
-#     unnest_tokens(output = word, input = stripped_text, token = "tweets", to_lower = TRUE) %>%
-#     anti_join(en_stopwords) %>% #get rid of stop words
-#     count(word) %>%
-#     arrange(desc(n))
-#   
-#   return(freq_year)
-# }
-# tic()
-# word_freq_2017 <- get_word_freq(congress_tweets_clean, 2017)
-# toc()
-# tic()
-# word_freq_2018 <- get_word_freq(congress_tweets_clean, 2018)
-# toc()
-# tic()
-# word_freq_2019 <- get_word_freq(congress_tweets_clean, 2019)
-# toc()
-# tic()
-# word_freq_2020 <- get_word_freq(congress_tweets_clean, 2020)
-# toc()
-# tic()
-# word_freq_2021 <- get_word_freq(congress_tweets_clean, 2021)
-# toc()
-# tic()
-# word_freq_2022 <- get_word_freq(congress_tweets_clean, 2022)
-# toc()
 
 
 ```
+
+# Visualize word frequency dataframes
+```{r}
+#load files
+frequency_dataframe17 <- readRDS("frequency_dataframe17.rds")
+frequency_dataframe18 <- readRDS("frequency_dataframe18.rds")
+frequency_dataframe22 <- readRDS("frequency_dataframe22.rds")
+
+#take top 20 words from each
+frequency_dataframe17_unique <- frequency_dataframe17 %>%
+  anti_join(frequency_dataframe18%>%select(word))%>%
+  anti_join(frequency_dataframe22%>%select(word))%>%
+  head(20)
+
+frequency_dataframe18_unique <- frequency_dataframe18 %>%
+  anti_join(frequency_dataframe17%>%select(word))%>%
+  anti_join(frequency_dataframe22%>%select(word))%>%
+  head(20)
+
+frequency_dataframe22_unique <- frequency_dataframe22 %>%
+  anti_join(frequency_dataframe17%>%select(word))%>%
+  anti_join(frequency_dataframe18%>%select(word))%>%
+  head(20)
+
+ggplot(frequency_dataframe17%>%head(20), aes(x=reorder(word,+n), y=n))+
+  geom_col()+
+  coord_flip()+
+  labs(y="",
+       x="",
+       title="Top words in Congress tweets (2017)",
+       subtitle="Stopwords and URLs removed from list")+
+  councilR::theme_council(use_showtext = TRUE)+
+  theme(axis.text = element_text(size=16))
+
+ggplot(frequency_dataframe17_unique, aes(x=reorder(word,+n), y=n))+
+  geom_col(fill="#A37731")+
+  coord_flip()+
+  labs(y="",
+       x="",
+       title="Unique words in Congress tweets (2017)",
+       subtitle="Stopwords and URLs removed from list")+
+  councilR::theme_council(use_showtext = TRUE)+
+  theme(axis.text = element_text(size=16))
+
+ggplot(frequency_dataframe18_unique, aes(x=reorder(word,+n), y=n))+
+  geom_col(fill="#57A22F")+
+  coord_flip()+
+  labs(y="",
+       x="",
+       title="Unique words in Congress tweets (2018)",
+       subtitle="Stopwords and URLs removed from list")+
+  councilR::theme_council(use_showtext = TRUE)+
+  theme(axis.text = element_text(size=16))
+
+ggplot(frequency_dataframe22_unique, aes(x=reorder(word,+n), y=n))+
+  geom_col(fill="#0054A4")+
+  coord_flip()+
+  labs(y="",
+       x="",
+       title="Unique words in Congress tweets (2022)",
+       subtitle="Stopwords and URLs removed from list")+
+  councilR::theme_council(use_showtext = TRUE)+
+  theme(axis.text = element_text(size=16))
+
+```
+
 
 # 3. Who are the power users?
 ```{r}
@@ -200,6 +247,15 @@ congress_tweets_by_user_year <- congress_tweets_clean %>%
   arrange(desc(n))
 
 #mutate avg num words per tweet
+ggplot(congress_tweets_by_user%>%head(15), aes(x=reorder(screen_name,+n), y=n))+
+  geom_col(fill="#D64C3A")+
+  coord_flip()+
+  labs(y="",
+       x="",
+       title="Power users across all years (2017-2022)",
+       subtitle="Listed by number of tweets")+
+  councilR::theme_council(use_showtext = TRUE)+
+  theme(axis.text = element_text(size=16))
 
 ```
 
